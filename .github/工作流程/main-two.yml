@@ -1,0 +1,82 @@
+名称：日常任务二
+
+
+于：
+  
+  推：＃推触发
+    分支机构：[主要]
+  workflow_dispatch：＃手动触发
+  时间表：＃计划任务触发
+    - cron的：' 0 * / 8 * * * '  ＃ cron的表达式，操作时区是UTC时间，所以要往前推8个小时（4-23）
+    
+
+职位：
+  日常任务：
+    如果：github.event.repository.owner.id == github.event.sender.id
+
+   
+    运行：ubuntu-latest
+
+    策略：
+      矩阵：
+        节点版本：[12]
+        节点注册表：['https://registry.npmjs.org']
+
+    步骤：
+    
+    ＃检出
+    -名称：结帐
+      用途：actions / checkout @ v2
+      
+    ＃设置服务器时区为东八区
+    -名称：设置时区
+      运行：sudo timedatectl设置时区'亚洲/上海'
+
+    -名称：使用Node.js $ {{matrix.node-version}}
+      用途：actions / setup-node @ v1
+      与：
+        节点版本：$ {{matrix.node-version}}
+        注册表网址：$ {{matrix.node-registry}}
+
+    -名称：获取npm缓存目录
+      id：npm缓存
+      运行：|
+        echo“ :: set-output name = dir :: $（npm配置获取缓存）”
+    -名称：恢复npm缓存
+      用途：actions / cache @ v2
+      id：use-npm-cache
+      与：
+        路径：$ {{steps.npm-cache.outputs.dir}}
+        键：$ {{Runner.os}}-节点-$ {{hashFiles（'** / package-lock.json'）}}
+
+    -名称：恢复npm依赖关系
+      用途：actions / cache @ v2
+      id：使用-npm-取决于
+      与：
+        路径：|
+          node_modules
+          * / * / node_modules
+        密钥：$ {{runner.os}}-取决于-$ {{hashFiles（'** / package-lock.json'）}}
+
+    -名称：还原任务缓存
+      用途：actions / cache @ v2
+      id：使用任务缓存
+      与：
+        路径：|
+          /home/runner/.AutoSignMachine
+        键：$ {{Runner.os}}-任务-$ {{hashFiles（'** / package-lock.json'）}}
+
+    -名称：安装依赖项
+      if：steps.use-npm-cache.outputs.cache-hit！='true'|| steps.use-npm-depends.outputs.cache-hit！='true'
+      运行：npm install
+       
+ 
+
+    ＃运行unicom签到任务
+    -名称：日常运行联通任务
+   
+      env：
+        用户：$ {{secrets.unicom_user1}}
+        密码：$ {{secrets.unicom_password1}}
+        appid：$ {{secrets.unicom_appid}}
+      运行：节点index.js unicom --user = $ {user} --password = $ {password} --appid = $ {appid}
